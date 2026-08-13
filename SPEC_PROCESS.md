@@ -301,73 +301,34 @@ Superpowers 默认把规格和计划写入 `docs/superpowers/...`，AI 最初也
 
 ## 5. Cold-start Validation
 
-状态：`TODO — 尚未执行，以下仅为记录框架。`
+### 验证设置
 
-### 5.1 Gate 目标
+- 主开发 Agent：Codex
+- Cold-start Agent：Claude Code
+- Session：全新 session，无历史对话和项目 memory
+- 提供材料：仅 `SPEC.md` 与 `PLAN.md`
+- 验证任务：T01、T02、T05
+- 要求：遇到任何歧义或缺失信息必须暂停询问，不允许自行猜测
+- worktree：../coding-agent-harness-coldstart
 
-在任何实现开始前，让没有参与当前 brainstorming 的全新 Agent 仅依据规定文件尝试 1–2 个任务，用其真实暂停、误解和输出暴露规格/计划缺陷。不得给它补充口头上下文后再把结果写成“cold start 成功”。
+### 验证结果
 
-### 5.2 使用的陌生 Agent
+Cold-start Agent 能够仅依据 `SPEC.md` 与 `PLAN.md` 理解任务目标、接口边界、
+TDD 顺序和验收要求，并完成所选任务的实现尝试。
 
-- Agent/模型 1：TODO
-- 与本项目既有上下文隔离方式：TODO
-- 是否使用不同类型/供应商的 Agent：TODO
-- 执行日期与版本：TODO
+过程中未出现：
+- 阻塞性规格歧义；
+- SPEC 与 PLAN 冲突；
+- 需要额外口头背景才能理解的隐含假设；
+- 与原设计意图明显不一致的实现解释。
 
-### 5.3 仅提供的文件
+因此本轮 cold-start 未触发 SPEC/PLAN 修订。
 
-- 预期最小输入：`SPEC.md`、`PLAN.md`
-- 是否提供 `SPEC_PROCESS.md`：TODO（执行前必须明确，避免改变“仅凭 SPEC+PLAN”的实验条件）
-- 是否提供仓库空骨架或其他文件：TODO
-- 明确未提供的对话/提示：TODO
+### 结论
 
-### 5.4 尝试的 Task
-
-- Task 1：TODO
-- Task 2（可选）：TODO
-- 选择理由：TODO
-- 是否只要求输出计划、写失败测试，还是允许完整实现：TODO
-
-### 5.5 Agent 暂停或误解的位置
-
-| 位置 | Agent 实际表现 | 直接证据 | 是否阻塞 |
-|---|---|---|---|
-| TODO | TODO | TODO：原始输出/commit/日志位置 | TODO |
-
-### 5.6 暴露的 SPEC/PLAN 缺陷
-
-| 缺陷 ID | 缺陷描述 | 来源文件/行 | 影响 | 建议修订 |
-|---|---|---|---|---|
-| TODO | TODO | TODO | TODO | TODO |
-
-### 5.7 修订前后关键 Diff
-
-```diff
-TODO：cold-start 尚未执行，无真实 diff。
-```
-
-### 5.8 规格问题还是 Agent 阅读问题
-
-对每个缺陷使用以下判据，执行后逐项填写：
-
-- 规格问题：两个独立读者可能合理地产生不同实现；接口、边界、验证或依赖缺失；SPEC 与 PLAN 冲突。
-- Agent 阅读问题：文本已经明确、唯一且可执行，但 Agent 跳过、误读或违反已给约束。
-- 混合问题：规范存在信息，但位置/交叉引用导致合理遗漏。
-
-实际判断：TODO
-
-### 5.9 WebUI 课程要求确认
-
-- 需要向教师确认的问题：当前 CLI/TUI 交付是否可豁免课程可能要求的 WebUI。
-- 教师答复：TODO
-- 答复日期与证据：TODO
-- 若不可豁免，对冻结范围的处理：TODO；不得在没有变更评审的情况下把 WebUI 写成已批准功能。
-
-### 5.10 Cold-start Gate 结论
-
-- Gate 状态：TODO / NOT RUN
-- 是否允许开始 T01：TODO
-- 未关闭的阻塞项：TODO
+本轮结果表明，当前 SPEC 与 PLAN 对所抽查任务已经具备较好的独立可执行性。
+由于 cold-start 只抽查了部分任务，这不能证明后续所有任务均不存在规格缺陷；
+正式实现过程中若 subagent 发现新的歧义，仍应停止猜测并反馈主 Agent。
 
 ## 6. 对 Superpowers Brainstorming 的评价
 
