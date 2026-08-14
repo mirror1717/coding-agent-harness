@@ -300,7 +300,21 @@ AI 首版总体架构没有独立列出 FeedbackEngine、MemoryStore、ToolDispa
 Superpowers 默认把规格和计划写入 `docs/superpowers/...`，AI 最初也沿用了该方式。用户要求根目录 `SPEC.md` 与 `PLAN.md`，并多次要求增加具体章节、依赖图和更细任务。这反映出课程交付需要直接可见、可审阅的主文档，而不是遵循工具默认目录。
 
 ## 5. Cold-start Validation
+### CS-01：依赖版本范围未明确
 
+Cold-start Agent 在执行 T01 时指出，PLAN 要求 pyproject.toml
+使用 bounded dependency ranges，但 SPEC/PLAN 没有提供具体版本边界，
+因此无法在“不自行猜测”的约束下确定依赖声明。
+
+判断：PLAN 缺陷，非 Agent 阅读错误。
+
+处理：
+补充首版 runtime/dev dependency ranges，并规定：
+兼容范围写入 pyproject.toml，同时提交 lock file；
+发生 resolver conflict 时必须报告，不能由 subagent 擅自放宽版本边界。
+
+影响：
+消除了不同 subagent 或不同机器选择不同依赖版本造成的实现与测试漂移。
 ### 验证设置
 
 - 主开发 Agent：Codex
