@@ -121,6 +121,8 @@ class IdGenerator(Protocol):
 
 ## T01：包骨架与核心领域模型
 
+**状态：** ✅ 完成 — implementation commit `7ab82ce82b1467bfa37b1191cb6b6d4febe12a69`
+
 **目标：** 建立可安装的 src-layout 包、稳定错误码和后续任务共享的不可变领域类型。
 
 **依赖与并行：** 无依赖；必须首先完成，不与其他任务并行。
