@@ -154,6 +154,8 @@ class IdGenerator(Protocol):
 
 ## T02：Canonical JSON 与版本化审批指纹
 
+**状态：** ✅ 完成 — implementation commit `9833c8d701724760447f9ea37f8870970f179aac`（integration commit `5958116`）
+
 **目标：** 实现稳定 canonical serialization 和不会因字符串边界混淆而误授权的 fingerprint。
 
 **依赖与并行：** 依赖 T01；可与 T03、T05、T12、T13、T14 并行。
