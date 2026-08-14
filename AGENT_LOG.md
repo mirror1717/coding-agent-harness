@@ -59,3 +59,11 @@
 - Spec compliance review：最终 SPEC COMPLIANT；exact-secret content 检测依人工裁决留给 T06 Guardrail。
 - Code quality review：修复 Perl `-E` 漏拒、Python attached option 误报与 grammar 规则漂移后 CODE QUALITY APPROVED。
 - 范围：仅 `tools.py` 与 `test_tools.py`；未实现 Docker、Policy、Guardrail 或 secret detector。
+
+## T03 — RunArtifactStore
+
+- 状态：完成；implementation `e7f64d4`，integration `3a97010`。
+- TDD/验证：50 artifact tests、83 unit tests；Ruff、mypy、cached diff check 通过。
+- Review：SPEC COMPLIANT；CODE QUALITY APPROVED（quota mode，无 Critical/Spec/Security 阻塞）。
+- 安全结果：descriptor-backed I/O、原子 no-replace、配额锁、digest/size、私有权限、symlink/目录替换与稳定 evidence error。
+- 非阻塞 TODO：pytest restrictive-umask fixture 留下临时目录 cleanup warning，后续测试卫生任务处理。

@@ -179,6 +179,8 @@ class IdGenerator(Protocol):
 
 ## T03：RunArtifactStore
 
+**状态：** ✅ 完成 — implementation commit `e7f64d4`（integration commit `3a97010`）
+
 **目标：** 为 stdout、stderr、pytest report 和 diff 提供私有、原子、run-local 的证据存储。
 
 **依赖与并行：** 依赖 T01；可与 T02、T05、T12、T13、T14 并行。
