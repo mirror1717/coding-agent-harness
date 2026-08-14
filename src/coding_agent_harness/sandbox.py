@@ -222,15 +222,25 @@ class DockerSandbox:
             action_args.get("timeout_seconds", self._config.timeout_seconds)
         )
 
+        stdin_data = action_args.get("stdin")
+        stdin_bytes: bytes | None = None
+        if stdin_data is not None:
+            stdin_bytes = str(stdin_data).encode("utf-8")
+
         process = await asyncio.create_subprocess_exec(
             *argv,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE if stdin_bytes else None,
         )
 
         timed_out = False
+        stdout_bytes = b""
+        stderr_bytes = b""
         try:
-            await asyncio.wait_for(process.communicate(), timeout=timeout)
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                process.communicate(input=stdin_bytes), timeout=timeout
+            )
         except TimeoutError:
             timed_out = True
             process.kill()
@@ -264,3 +274,210 @@ class DockerSandbox:
             stderr=asyncio.subprocess.PIPE,
         )
         await process.wait()
+
+
+class CapturedDockerSandbox:
+    """DockerSandbox wrapper that captures stdout/stderr bytes for tools."""
+
+    def __init__(
+        self,
+        workspace_path: Path,
+        workspace_id: str,
+        config: SandboxConfig | None = None,
+    ) -> None:
+        self._sandbox = DockerSandbox(workspace_path, workspace_id, config)
+        self._workspace_path = workspace_path
+        self._workspace_id = workspace_id
+
+    @property
+    def config(self) -> SandboxConfig:
+        return self._sandbox._config
+
+    async def execute_with_output(
+        self, action: NormalizedAction
+    ) -> tuple[RawExecutionResult, bytes, bytes]:
+        """Execute and return (result, stdout_bytes, stderr_bytes)."""
+        execution_id = uuid.uuid4().hex
+        container_name = f"harness-{execution_id}"
+        argv = self._sandbox._builder.build_argv(
+            action, self._workspace_path, container_name
+        )
+        action_args = action.normalized_args
+        timeout = int(
+            action_args.get("timeout_seconds", self._sandbox._config.timeout_seconds)
+        )
+        stdin_data = action_args.get("stdin")
+        stdin_bytes: bytes | None = None
+        if stdin_data is not None:
+            stdin_bytes = str(stdin_data).encode("utf-8")
+
+        process = await asyncio.create_subprocess_exec(
+            *argv,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE if stdin_bytes else None,
+        )
+
+        timed_out = False
+        stdout_bytes = b""
+        stderr_bytes = b""
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                process.communicate(input=stdin_bytes), timeout=timeout
+            )
+        except TimeoutError:
+            timed_out = True
+            process.kill()
+            await process.wait()
+
+        exit_code = process.returncode
+        oom_killed = exit_code == DOCKER_KILL_EXIT_CODE and not timed_out
+        outcome = classify_outcome(exit_code, timed_out, oom_killed)
+        sandbox_meta = self._sandbox._builder.build_sandbox_meta(self._workspace_id)
+
+        result = RawExecutionResult(
+            execution_id=execution_id,
+            action_id=action.action_id,
+            exit_code=exit_code,
+            stdout_artifact=None,
+            stderr_artifact=None,
+            report_artifacts=(),
+            duration_seconds=0.0,
+            outcome=outcome,
+            sandbox_meta=sandbox_meta,
+        )
+        return result, stdout_bytes, stderr_bytes
+
+    async def execute(self, action: NormalizedAction) -> RawExecutionResult:
+        result, _, _ = await self.execute_with_output(action)
+        return result
+
+    async def cancel(self, execution_id: str) -> None:
+        await self._sandbox.cancel(execution_id)
+
+
+class ShellTool:
+    """Execute shell actions through the Docker sandbox."""
+
+    def __init__(self, sandbox: CapturedDockerSandbox) -> None:
+        self._sandbox = sandbox
+
+    async def execute(self, action: NormalizedAction) -> RawExecutionResult:
+        result, stdout, stderr = await self._sandbox.execute_with_output(action)
+        return result.model_copy(update={
+            "stdout_artifact": stdout.decode("utf-8", errors="replace")[:4096] or None,
+            "stderr_artifact": stderr.decode("utf-8", errors="replace")[:4096] or None,
+        })
+
+
+class PytestTool:
+    """Execute pytest actions through the Docker sandbox."""
+
+    def __init__(self, sandbox: CapturedDockerSandbox) -> None:
+        self._sandbox = sandbox
+
+    async def execute(self, action: NormalizedAction) -> RawExecutionResult:
+        result, stdout, stderr = await self._sandbox.execute_with_output(action)
+        return result.model_copy(update={
+            "stdout_artifact": stdout.decode("utf-8", errors="replace")[:8192] or None,
+            "stderr_artifact": stderr.decode("utf-8", errors="replace")[:4096] or None,
+        })
+
+
+class ListFilesTool:
+    """List files in a workspace directory through Docker."""
+
+    def __init__(self, sandbox: CapturedDockerSandbox) -> None:
+        self._sandbox = sandbox
+
+    async def execute(self, action: NormalizedAction) -> RawExecutionResult:
+        path = action.normalized_args.get("path", ".")
+        from .domain import ActionProposal, ActionSource
+        shell_action = NormalizedAction(
+            action_id=action.action_id,
+            source=action.source,
+            parent_action_id=action.parent_action_id,
+            type="shell",
+            raw_args={"argv": ["ls", "-la", str(path)], "cwd": "."},
+            normalized_args={"argv": ["ls", "-la", str(path)], "cwd": "."},
+            workspace_id=action.workspace_id,
+            round=action.round,
+        )
+        result, stdout, stderr = await self._sandbox.execute_with_output(shell_action)
+        return result.model_copy(update={
+            "stdout_artifact": stdout.decode("utf-8", errors="replace")[:4096] or None,
+            "stderr_artifact": stderr.decode("utf-8", errors="replace")[:4096] or None,
+        })
+
+
+class ReadFileTool:
+    """Read a file from the workspace through Docker."""
+
+    def __init__(self, sandbox: CapturedDockerSandbox) -> None:
+        self._sandbox = sandbox
+
+    async def execute(self, action: NormalizedAction) -> RawExecutionResult:
+        path = action.normalized_args.get("path", ".")
+        shell_action = NormalizedAction(
+            action_id=action.action_id,
+            source=action.source,
+            parent_action_id=action.parent_action_id,
+            type="shell",
+            raw_args={"argv": ["cat", str(path)], "cwd": "."},
+            normalized_args={"argv": ["cat", str(path)], "cwd": "."},
+            workspace_id=action.workspace_id,
+            round=action.round,
+        )
+        result, stdout, stderr = await self._sandbox.execute_with_output(shell_action)
+        return result.model_copy(update={
+            "stdout_artifact": stdout.decode("utf-8", errors="replace")[:8192] or None,
+            "stderr_artifact": stderr.decode("utf-8", errors="replace")[:4096] or None,
+        })
+
+
+class WriteFileTool:
+    """Write a file to the workspace through Docker."""
+
+    def __init__(self, sandbox: CapturedDockerSandbox) -> None:
+        self._sandbox = sandbox
+
+    async def execute(self, action: NormalizedAction) -> RawExecutionResult:
+        path = action.normalized_args.get("path", ".")
+        content = action.normalized_args.get("content", "")
+        shell_action = NormalizedAction(
+            action_id=action.action_id,
+            source=action.source,
+            parent_action_id=action.parent_action_id,
+            type="shell",
+            raw_args={
+                "argv": ["tee", str(path)],
+                "cwd": ".",
+                "stdin": str(content),
+            },
+            normalized_args={
+                "argv": ["tee", str(path)],
+                "cwd": ".",
+                "stdin": str(content),
+            },
+            workspace_id=action.workspace_id,
+            round=action.round,
+        )
+        result, stdout, stderr = await self._sandbox.execute_with_output(shell_action)
+        return result.model_copy(update={
+            "stdout_artifact": stdout.decode("utf-8", errors="replace")[:4096] or None,
+            "stderr_artifact": stderr.decode("utf-8", errors="replace")[:4096] or None,
+        })
+
+
+def create_default_tools(
+    workspace_path: Path, workspace_id: str, config: SandboxConfig | None = None
+) -> dict[str, object]:
+    """Create the default set of tools backed by Docker sandbox."""
+    sandbox = CapturedDockerSandbox(workspace_path, workspace_id, config)
+    return {
+        "list_files": ListFilesTool(sandbox),
+        "read_file": ReadFileTool(sandbox),
+        "write_file": WriteFileTool(sandbox),
+        "shell": ShellTool(sandbox),
+        "pytest": PytestTool(sandbox),
+    }
