@@ -1,0 +1,61 @@
+version: 1
+defaults:
+  decision: REQUIRE_APPROVAL
+  risk: medium
+rules:
+  - id: allow-safe-reads
+    action_types: [read_file, list_files]
+    risk: low
+    decision: ALLOW
+    reason: Read-only access inside the workspace
+  - id: allow-required-verification-pytest
+    action_types: [pytest]
+    match:
+      source: VERIFICATION
+    risk: low
+    decision: ALLOW
+    reason: Required verification pytest runs without approval
+  - id: require-approval-ordinary-write
+    action_types: [write_file]
+    risk: medium
+    decision: REQUIRE_APPROVAL
+    reason: Ordinary workspace writes require human approval
+  - id: require-approval-ordinary-shell
+    action_types: [shell]
+    risk: medium
+    decision: REQUIRE_APPROVAL
+    reason: Ordinary shell commands require human approval
+  - id: require-approval-ordinary-pytest
+    action_types: [pytest]
+    risk: medium
+    decision: REQUIRE_APPROVAL
+    reason: Non-verification pytest runs require human approval
+  - id: deny-secret-path-writes
+    action_types: [write_file]
+    match:
+      path_patterns:
+        - .env
+        - "*.pem"
+        - "*.key"
+        - id_rsa
+        - id_ed25519
+        - credentials
+        - secrets.json
+        - .netrc
+        - .npmrc
+        - .pypirc
+    risk: high
+    decision: DENY
+    reason: Writes to secret-like paths are denied
+  - id: deny-destructive-shell
+    action_types: [shell]
+    match:
+      argv_patterns:
+        - rm
+        - rmdir
+        - shred
+        - mkfs
+        - dd
+    risk: high
+    decision: DENY
+    reason: Destructive shell commands are denied
