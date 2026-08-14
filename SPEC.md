@@ -254,7 +254,7 @@ rules:
 - 输入：run ID、execution ID、artifact kind、原始 bytes、media type 与敏感性标记。
 - 行为：将 stdout、stderr、pytest report、diff 和其他运行产物写入宿主机的 run-local 私有目录，计算 SHA-256、大小和截断信息后返回不可变引用。
 - 输出：`ArtifactRef`，包含 artifact ID、kind、digest、size、media type、relative storage key、sensitive 与 truncated。
-- 边界条件：目录权限为仅当前用户可访问，永不挂载给 Docker，文件名由 Harness 生成；单 artifact 与单 run 有大小/数量上限；artifact 不进入模型上下文，除非经 FeedbackEngine 脱敏与截断。
+- 边界条件：目录权限为仅当前用户可访问，永不挂载给 Docker，文件名由 Harness 生成；单 artifact 与单 run 有大小/数量上限；artifact 不进入模型上下文，除非经 FeedbackEngine 脱敏与截断。业务组件只能持有 `ArtifactRef`，并通过 RunArtifactStore 的 descriptor-backed `put/read/verify` 完成证据 I/O；Store 不公开返回普通 `Path` 的安全能力。可选诊断位置只能是明确标记 diagnostic-only 的字符串，不得用于读取或验证。
 - 错误处理：写入必须原子完成；ExecutionResult 事件只能引用已成功持久化的 artifact。运行中写入失败、digest 不匹配或引用越界视为执行证据完整性故障，阻止继续执行并进入 `SECURITY_STOP`。
 
 RunArtifactStore 保存大体积证据 bytes，AuditLog 保存不可变事实、artifact ID 与 digest。artifact 内容不内联到 JSONL 哈希链，但其 digest 被链上事件覆盖：事后内容变化可检测；artifact 被删除时 Audit 链本身仍可验证，但完整证据校验必须报告 `evidence_missing`，不能声称运行证据完整。RunSummary 默认只读取结构化事件，按需显示 artifact 引用。
@@ -669,7 +669,7 @@ DEMO-1 至 DEMO-3 均可用预设 CLI 命令离线运行；固定输入下产生
 
 ### AC-18：RunArtifactStore
 
-stdout、stderr、pytest report 与 diff 使用受限 run-local artifact 保存并返回含 SHA-256 的 ArtifactRef；AuditEvent 只保存引用与 digest。修改 bytes 触发 digest mismatch，删除文件报告 `evidence_missing`，越界 storage key 被拒绝；运行中 artifact 原子写入失败阻止 ExecutionResult 事件和后续 Action，并最终进入 `SECURITY_STOP`。
+stdout、stderr、pytest report 与 diff 使用受限 run-local artifact 保存并返回含 SHA-256 的 ArtifactRef；AuditEvent 只保存引用与 digest。所有证据读取/验证必须经 descriptor-backed RunArtifactStore API，业务组件不得取得普通 `Path` 后自行 I/O。修改 bytes 触发 digest mismatch，删除文件报告 `evidence_missing`，越界 storage key 被拒绝；运行中 artifact 原子写入失败阻止 ExecutionResult 事件和后续 Action，并最终进入 `SECURITY_STOP`。
 
 ## 12. 错误处理与终止优先级
 
