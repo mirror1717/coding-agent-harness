@@ -138,6 +138,9 @@ class IdGenerator(Protocol):
 - 定义 `ActionSource`、`ActionProposal`、`NormalizedAction`、`RuntimeState`、`TerminalState`、`ModelDecision`、`RawExecutionResult`、`StructuredFeedback`、`TaskRequest`、`RunResult`。
 - 定义 `HarnessError(code, message)` 及 validation/configuration/security/evidence 子类。
 - `pyproject.toml` 固定 Python `>=3.12`，声明 runtime/dev 依赖范围、pytest asyncio mode、ruff/mypy 和 `harness` entry point。
+- Runtime dependencies 必须使用：`pydantic>=2.13,<3`、`typer>=0.27.1,<0.28`、`textual>=8.2,<9`、`PyYAML>=6.0.3,<7`、`openai>=2.54,<3`、`keyring>=25.7,<26`。
+- Development/test dependencies 必须使用：`pytest>=9.1,<10`、`pytest-asyncio>=1.4,<2`、`ruff>=0.16.3,<0.17`、`mypy>=2.3,<3`。
+- 所有依赖必须有上界；Typer 与 Ruff 使用窄 minor-version 上界。OpenAI SDK 首版锁定 2.x API 契约。若 resolver 报告冲突，停止并保留 resolver 输出，不得擅自放宽上界。
 - 生成并提交选定解析器的锁文件；CI 后续从锁文件安装。
 
 **验证步骤：**
