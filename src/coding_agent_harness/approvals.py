@@ -23,14 +23,22 @@ class ApprovalRequest:
     """Immutable request presented to an approver."""
 
     __slots__ = (
-        "request_id",
         "action",
-        "policy_result",
-        "fingerprint_version",
-        "fingerprint",
-        "requested_at",
         "expires_at",
+        "fingerprint",
+        "fingerprint_version",
+        "policy_result",
+        "request_id",
+        "requested_at",
     )
+
+    action: NormalizedAction
+    expires_at: datetime
+    fingerprint: str
+    fingerprint_version: int
+    policy_result: PolicyResult
+    request_id: str
+    requested_at: datetime
 
     def __init__(
         self,
@@ -62,15 +70,24 @@ class ApprovalOutcome:
     """Immutable result of an approval decision."""
 
     __slots__ = (
+        "actor_meta",
+        "decided_at",
         "decision",
         "fingerprint",
-        "decided_at",
-        "actor_meta",
         "reason",
         "replacement_action_id",
         "replacement_proposal",
         "wait_duration_seconds",
     )
+
+    actor_meta: dict[str, str]
+    decided_at: datetime
+    decision: ApprovalDecision
+    fingerprint: str
+    reason: str
+    replacement_action_id: str | None
+    replacement_proposal: ActionProposal | None
+    wait_duration_seconds: float | None
 
     def __init__(
         self,
@@ -215,8 +232,10 @@ class ApprovalBroker:
 
         outcome = await self._approver.decide(request)
 
-        if outcome.decision is ApprovalDecision.APPROVE_ONCE:
-            if outcome.fingerprint != request.fingerprint:
+        if (
+            outcome.decision is ApprovalDecision.APPROVE_ONCE
+            and outcome.fingerprint != request.fingerprint
+        ):
                 return ApprovalOutcome(
                     decision=ApprovalDecision.REJECT,
                     fingerprint=request.fingerprint,
@@ -228,4 +247,4 @@ class ApprovalBroker:
         return outcome
 
 
-from typing import Callable as typing_Callable
+from collections.abc import Callable as typing_Callable

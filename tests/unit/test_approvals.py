@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
-import asyncio
-from datetime import UTC, datetime, timedelta
-from typing import override
+from datetime import UTC, datetime
 
 import pytest
 
 from coding_agent_harness.approvals import (
     ApprovalBroker,
     ApprovalDecision,
-    ApprovalOutcome,
     ApprovalRequest,
     ApprovalScript,
     ScriptedApprover,
 )
 from coding_agent_harness.canonical import approval_fingerprint
-from coding_agent_harness.domain import ActionProposal, ActionSource, NormalizedAction
+from coding_agent_harness.domain import ActionSource, NormalizedAction
 from coding_agent_harness.policy import PolicyDecision, PolicyResult, RiskLevel
 
 _FIXED_CLOCK = lambda: datetime(2026, 1, 1, second=10, tzinfo=UTC)
@@ -89,7 +86,7 @@ class TestApprovalRequest:
             requested_at=datetime(2026, 1, 1, tzinfo=UTC),
             expires_at=datetime(2026, 1, 1, second=30, tzinfo=UTC),
         )
-        with pytest.raises(Exception):
+        with pytest.raises(AttributeError):
             request.request_id = "changed"  # type: ignore[misc]
 
 
@@ -303,8 +300,9 @@ class TestTimeout:
 
 class TestBrokerHasNoDispatchDependency:
     def test_broker_does_not_import_tools_or_sandbox(self) -> None:
-        import coding_agent_harness.approvals as approvals_mod
         import inspect
+
+        import coding_agent_harness.approvals as approvals_mod
 
         source = inspect.getsource(approvals_mod)
         assert "from coding_agent_harness.tools import" not in source
@@ -313,17 +311,6 @@ class TestBrokerHasNoDispatchDependency:
         assert "import coding_agent_harness.sandbox" not in source
 
     def test_broker_only_returns_proposals(self) -> None:
-        action = _make_normalized()
-        policy = _make_policy_result()
-        request = ApprovalRequest(
-            request_id="req-1",
-            action=action,
-            policy_result=policy,
-            fingerprint_version=1,
-            fingerprint=approval_fingerprint(action, version=1),
-            requested_at=datetime(2026, 1, 1, tzinfo=UTC),
-            expires_at=datetime(2026, 1, 1, second=30, tzinfo=UTC),
-        )
         approver = ScriptedApprover(
             ApprovalScript(
                 decisions=[ApprovalDecision.EDIT_AND_EXECUTE],
