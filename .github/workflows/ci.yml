@@ -27,6 +27,23 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra dev
 
+      - name: Check Docker
+        run: |
+          docker version
+          docker info
+
+      - name: Build sandbox image
+        run: |
+          docker build \
+            -t coding-agent-harness-sandbox:latest \
+            sandbox/
+
+      - name: Verify sandbox image
+        run: |
+          docker image inspect coding-agent-harness-sandbox:latest
+          docker run --rm coding-agent-harness-sandbox:latest \
+            python3 -c "import pytest; print('sandbox pytest OK')"
+
       - name: Run tests
         run: uv run --extra dev python -m pytest
 
