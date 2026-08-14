@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "cpu_limit": 1.0,
+  "memory_limit_bytes": 1073741824,
+  "pids_limit": 128,
+  "timeout_seconds": 300,
+  "network_mode": "none",
+  "privileged": false,
+  "run_as_non_root": true,
+  "root_filesystem_read_only": true,
+  "cap_drop_all": true,
+  "no_new_privileges": true,
+  "docker_socket_mounted": false,
+  "workspace_mount_target": "/workspace",
+  "workspace_mount_read_only": false,
+  "maximum_mounts": 1
+}
