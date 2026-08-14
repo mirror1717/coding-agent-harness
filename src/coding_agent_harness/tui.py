@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import ClassVar
 
-from textual.app import App, ComposeResult
+from textual.app import App, BindingType, ComposeResult
 from textual.widgets import Footer, Header, Static
 
 
 class HarnessTUI(App):
     """Minimal TUI that displays run status and collects approvals."""
 
-    BINDINGS = [("q", "quit", "Quit"), ("a", "approve", "Approve"), ("r", "reject", "Reject")]
+    BINDINGS: ClassVar[list[BindingType]] = [("q", "quit", "Quit"), ("a", "approve", "Approve"), ("r", "reject", "Reject")]
 
     def __init__(self) -> None:
         super().__init__()

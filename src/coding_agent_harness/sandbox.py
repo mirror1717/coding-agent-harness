@@ -235,10 +235,8 @@ class DockerSandbox:
         )
 
         timed_out = False
-        stdout_bytes = b""
-        stderr_bytes = b""
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+            await asyncio.wait_for(
                 process.communicate(input=stdin_bytes), timeout=timeout
             )
         except TimeoutError:
@@ -392,7 +390,6 @@ class ListFilesTool:
 
     async def execute(self, action: NormalizedAction) -> RawExecutionResult:
         path = action.normalized_args.get("path", ".")
-        from .domain import ActionProposal, ActionSource
         shell_action = NormalizedAction(
             action_id=action.action_id,
             source=action.source,

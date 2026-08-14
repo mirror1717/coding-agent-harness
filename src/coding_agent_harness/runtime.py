@@ -2,28 +2,25 @@
 
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 from coding_agent_harness.approvals import (
     ApprovalBroker,
     ApprovalDecision,
-    ApprovalRequest,
     ApprovalOutcome,
+    ApprovalRequest,
 )
 from coding_agent_harness.artifacts import RunArtifactStore
 from coding_agent_harness.audit import AuditLog
-from coding_agent_harness.budgets import BudgetController, BudgetKind, BudgetLimits
+from coding_agent_harness.budgets import BudgetController
 from coding_agent_harness.canonical import approval_fingerprint
 from coding_agent_harness.domain import (
     ActionProposal,
-    ActionSource,
     ModelDecision,
     NormalizedAction,
-    RawExecutionResult,
     RunResult,
     RuntimeState,
     StructuredFeedback,
@@ -31,15 +28,13 @@ from coding_agent_harness.domain import (
     TerminalState,
 )
 from coding_agent_harness.errors import (
-    HarnessConfigurationError,
     HarnessError,
-    HarnessEvidenceError,
     HarnessSecurityError,
     HarnessValidationError,
 )
 from coding_agent_harness.feedback import FeedbackEngine
 from coding_agent_harness.guardrail import Guardrail, GuardrailDecision
-from coding_agent_harness.llm import AgentContext, BudgetSummary, LLM
+from coding_agent_harness.llm import LLM, AgentContext, BudgetSummary
 from coding_agent_harness.memory import MemoryStore
 from coding_agent_harness.policy import PolicyDecision, PolicyEngine, PolicyResult
 from coding_agent_harness.termination import TerminalCandidate, choose_terminal
@@ -363,7 +358,7 @@ class AgentRuntime:
                     required=check.required,
                     outcome=outcome,
                 ))
-            except Exception as e:
+            except HarnessError:
                 results.append(CheckResult(
                     check_id=check.check_id,
                     action_id="",

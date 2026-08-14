@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Protocol
 
 from coding_agent_harness.domain import StructuredFeedback
 
@@ -207,11 +207,11 @@ class FeedbackEngine:
     ) -> StructuredFeedback:
         try:
             stdout_str = stdout.decode("utf-8", errors="replace")
-        except Exception:
+        except UnicodeDecodeError:
             stdout_str = ""
         try:
             stderr_str = stderr.decode("utf-8", errors="replace")
-        except Exception:
+        except UnicodeDecodeError:
             stderr_str = ""
 
         category = _detect_category(action_type)
@@ -237,7 +237,7 @@ class FeedbackEngine:
                     error_signature=None,
                     parse_error=False,
                 )
-        except Exception:
+        except (ValueError, KeyError, IndexError, AttributeError):
             parsed = ParsedFeedback(
                 category=category,
                 exit_code=exit_code,

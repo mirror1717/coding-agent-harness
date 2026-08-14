@@ -7,6 +7,8 @@ from typing import Annotated
 
 import typer
 
+from coding_agent_harness.errors import HarnessError
+
 app = typer.Typer(
     name="harness",
     help="Governed coding agent harness with Docker sandbox and audit chain.",
@@ -121,15 +123,16 @@ def audit_verify(
     if not audit_file.exists():
         typer.echo(f"Error: {audit_file} not found", err=True)
         raise typer.Exit(code=1)
-    from coding_agent_harness.audit import AuditLog
     import json
+
+    from coding_agent_harness.audit import AuditLog
     run_id = "verify"
     try:
         with open(audit_file) as f:
             first_line = f.readline().strip()
             if first_line:
                 run_id = json.loads(first_line).get("run_id", run_id)
-    except Exception:
+    except (json.JSONDecodeError, OSError):
         pass
     log = AuditLog(audit_file, run_id=run_id)
     try:
@@ -138,7 +141,7 @@ def audit_verify(
         typer.echo(f"Evidence complete: {verification.evidence_complete}")
         if verification.errors:
             typer.echo(f"Errors: {verification.errors}")
-    except Exception as e:
+    except (HarnessError, OSError) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(code=1)
 
@@ -151,21 +154,23 @@ def run_summary(
     if not audit_file.exists():
         typer.echo(f"Error: {audit_file} not found", err=True)
         raise typer.Exit(code=1)
-    from coding_agent_harness.audit import AuditLog
     import json
+
+    from coding_agent_harness.audit import AuditLog, build_run_summary
     run_id = "summary"
     try:
         with open(audit_file) as f:
             first_line = f.readline().strip()
             if first_line:
                 run_id = json.loads(first_line).get("run_id", run_id)
-    except Exception:
+    except (json.JSONDecodeError, OSError):
         pass
     log = AuditLog(audit_file, run_id=run_id)
     try:
-        summary = log.build_run_summary()
+        verification = log.verify()
+        summary = build_run_summary(verification)
         typer.echo(str(summary))
-    except Exception as e:
+    except (HarnessError, OSError) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(code=1)
 

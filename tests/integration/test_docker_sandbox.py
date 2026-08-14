@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import shutil
 from pathlib import Path
 
 import pytest
 
-from coding_agent_harness.domain import ActionProposal, ActionSource, NormalizedAction
+from coding_agent_harness.domain import ActionSource, NormalizedAction
+from coding_agent_harness.errors import HarnessValidationError
 from coding_agent_harness.sandbox import (
     CapturedDockerSandbox,
-    DockerSandbox,
-    SandboxConfig,
     create_default_tools,
 )
 from coding_agent_harness.tools import ToolDispatcher
@@ -62,7 +60,7 @@ class TestDockerSandboxExecution:
         (ws / "test.txt").chmod(0o644)
         sandbox = CapturedDockerSandbox(ws, "test-ws")
         action = _make_shell_action(["cat", "test.txt"])
-        result, stdout, stderr = await sandbox.execute_with_output(action)
+        result, stdout, _stderr = await sandbox.execute_with_output(action)
         assert result.exit_code == 0
         assert b"hello" in stdout
 
@@ -140,12 +138,12 @@ class TestToolDispatcher:
             workspace_id="test-ws",
             round=1,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(HarnessValidationError):
             await dispatcher.dispatch(action)
 
     @pytest.mark.asyncio
     async def test_all_tools_call_sandbox(self, tmp_path: Path) -> None:
         tools = create_default_tools(tmp_path, "test-ws")
-        for name, tool in tools.items():
+        for tool in tools.values():
             assert hasattr(tool, "execute")
-            assert callable(getattr(tool, "execute"))
+            assert callable(tool.execute)

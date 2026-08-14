@@ -5,20 +5,17 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
-
 from coding_agent_harness.artifacts import RunArtifactStore
 from coding_agent_harness.audit import AuditLog
 from coding_agent_harness.credentials import CredentialStore, ExactSecretDetector
 from coding_agent_harness.feedback import FeedbackEngine
 from coding_agent_harness.memory import (
-    ConsiderResult,
     ConsiderStatus,
+    ExtractionRule,
     MemoryCandidate,
     MemoryKind,
     MemoryQuery,
     MemoryStore,
-    ExtractionRule,
 )
 
 _SECRET = "sk-exact-audit-secret-12345"
@@ -191,6 +188,7 @@ class TestCLICredentialsUpdate:
 
     def test_cli_has_update_command(self) -> None:
         from typer.testing import CliRunner
+
         from coding_agent_harness.cli import app
 
         runner = CliRunner()
@@ -199,6 +197,7 @@ class TestCLICredentialsUpdate:
 
     def test_cli_update_uses_hidden_input(self) -> None:
         from typer.testing import CliRunner
+
         from coding_agent_harness.cli import app
 
         runner = CliRunner()

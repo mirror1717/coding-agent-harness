@@ -4,16 +4,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from coding_agent_harness.approvals import (
     ApprovalBroker,
     ApprovalDecision,
-    ApprovalOutcome,
-    ApprovalRequest,
     ApprovalScript,
     ScriptedApprover,
 )
@@ -26,22 +22,23 @@ from coding_agent_harness.domain import (
     ModelDecision,
     NormalizedAction,
     RawExecutionResult,
-    RuntimeState,
-    StructuredFeedback,
     TaskRequest,
     TerminalState,
 )
 from coding_agent_harness.feedback import FeedbackEngine
-from coding_agent_harness.guardrail import EmptySecretDetector, Guardrail, GuardrailDecision, GuardrailReason
+from coding_agent_harness.guardrail import (
+    EmptySecretDetector,
+    Guardrail,
+)
 from coding_agent_harness.llm import MockLLM
 from coding_agent_harness.memory import MemoryStore
-from coding_agent_harness.policy import PolicyDecision, PolicyEngine, PolicyResult, RiskLevel
+from coding_agent_harness.policy import (
+    PolicyEngine,
+)
 from coding_agent_harness.runtime import AgentRuntime, RuntimeConfig
-from coding_agent_harness.termination import TerminalCandidate
 from coding_agent_harness.tools import ToolDispatcher, ToolRegistry
 from coding_agent_harness.verification import (
     AcceptanceCheck,
-    CheckOutcome,
     VerificationProfile,
 )
 
