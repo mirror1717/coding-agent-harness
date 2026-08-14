@@ -1,0 +1,86 @@
+# .gitlab-ci.yml - Governed Coding Agent Harness CI pipeline
+image: python:3.12-slim
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
+
+cache:
+  paths:
+    - .cache/pip
+    - .cache/uv
+
+stages:
+  - test
+  - build
+  - verify
+  - pipeline
+
+unit-test:
+  stage: test
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io > /dev/null 2>&1 || true
+    - pip install uv > /dev/null 2>&1
+    - uv venv .venv --python 3.12
+    - uv pip install -e ".[dev]" --python .venv/bin/python
+  script:
+    - .venv/bin/ruff check src/ tests/ || true
+    - .venv/bin/python -m pytest tests/unit/ -q --tb=short
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+mockllm-offline-e2e:
+  stage: test
+  before_script:
+    - pip install uv > /dev/null 2>&1
+    - uv venv .venv --python 3.12
+    - uv pip install -e ".[dev]" --python .venv/bin/python
+  script:
+    - env -u OPENAI_API_KEY .venv/bin/python -m pytest tests/unit/ tests/integration/ -q --tb=short -k "not docker"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+package-build:
+  stage: build
+  before_script:
+    - pip install uv > /dev/null 2>&1
+    - uv venv .venv --python 3.12
+    - uv pip install -e ".[dev]" --python .venv/bin/python
+  script:
+    - .venv/bin/python -m pip install build > /dev/null 2>&1
+    - .venv/bin/python -m build
+    - .venv/bin/python -c "import coding_agent_harness; print('import OK')"
+    - .venv/bin/python -m coding_agent_harness.cli --help
+  artifacts:
+    paths:
+      - dist/
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+sandbox-image-build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker build -t coding-agent-harness-sandbox:ci sandbox/
+    - docker run --rm coding-agent-harness-sandbox:ci python3 -c "import pytest; print('pytest available')"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+pipeline-pass:
+  stage: pipeline
+  needs:
+    - unit-test
+    - mockllm-offline-e2e
+    - package-build
+    - sandbox-image-build
+  script:
+    - echo "All required jobs passed. Pipeline PASS."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
