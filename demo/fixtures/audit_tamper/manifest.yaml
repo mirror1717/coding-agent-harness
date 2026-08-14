@@ -1,0 +1,14 @@
+name: audit-tamper
+description: Demo audit hash chain tamper evidence
+mockllm_script:
+  - kind: action
+    action:
+      action_id: act-1
+      source: MODEL
+      type: shell
+      raw_args:
+        argv: ["echo", "hello"]
+        cwd: "."
+      workspace_id: ws-1
+      round: 1
+  - kind: finish

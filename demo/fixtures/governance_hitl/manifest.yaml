@@ -1,0 +1,30 @@
+name: governance-hitl
+description: Demo governance chain with human-in-the-loop approval
+mockllm_script:
+  - kind: action
+    action:
+      action_id: act-1
+      source: MODEL
+      type: read_file
+      raw_args:
+        path: README.md
+      workspace_id: ws-1
+      round: 1
+  - kind: action
+    action:
+      action_id: act-2
+      source: MODEL
+      type: shell
+      raw_args:
+        argv: ["rm", "-rf", "/"]
+        cwd: "."
+      workspace_id: ws-1
+      round: 2
+approvals:
+  - action_id: act-2
+    decision: edit_and_execute
+    edited_args:
+      argv: ["echo", "safe"]
+      cwd: "."
+  - action_id: act-2-edited
+    decision: approve_once

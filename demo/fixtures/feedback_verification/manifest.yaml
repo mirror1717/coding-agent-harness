@@ -1,0 +1,24 @@
+name: feedback-verification
+description: Demo feedback-driven repair with system verification
+mockllm_script:
+  - kind: action
+    action:
+      action_id: act-1
+      source: MODEL
+      type: pytest
+      raw_args:
+        argv: ["pytest", "-q"]
+        cwd: "."
+      workspace_id: ws-1
+      round: 1
+  - kind: action
+    action:
+      action_id: act-2
+      source: MODEL
+      type: write_file
+      raw_args:
+        path: app.py
+        content: "def add(a, b):\n    return a + b\n"
+      workspace_id: ws-1
+      round: 2
+  - kind: finish
