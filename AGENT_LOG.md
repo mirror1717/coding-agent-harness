@@ -48,3 +48,14 @@
 - Spec compliance review：最终 SPEC COMPLIANT；确认 `SECURITY_STOP` 最高且全部终态排列裁决稳定。
 - Code quality review：初审发现负快照、security 覆盖假阳性及候选事实矛盾；TDD 修复后 CODE QUALITY APPROVED。
 - 范围：仅 T13 声明的四个实现/测试文件；未加入 Runtime 协调逻辑。
+
+## T05 — ToolRegistry 与结构化 Action
+
+- 状态：完成
+- Implementation commit：`d7a3b58`（集成为 `feba572`）
+- Implementer：fresh subagent `/root/w2_t05`，后续安全修复由 fresh subagent/reviewer 在同一隔离 worktree 完成。
+- TDD：从缺失模块 RED 开始，多轮负向回归覆盖 strict argv、路径/symlink、pytest masquerade、有限 wrapper grammar、解释器启动选项与 module/script/stdin 边界；最终 tools+domain 169 passed。
+- Verification：Ruff、mypy、cached diff check 通过。
+- Spec compliance review：最终 SPEC COMPLIANT；exact-secret content 检测依人工裁决留给 T06 Guardrail。
+- Code quality review：修复 Perl `-E` 漏拒、Python attached option 误报与 grammar 规则漂移后 CODE QUALITY APPROVED。
+- 范围：仅 `tools.py` 与 `test_tools.py`；未实现 Docker、Policy、Guardrail 或 secret detector。

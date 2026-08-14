@@ -229,6 +229,8 @@ class IdGenerator(Protocol):
 
 ## T05：ToolRegistry 与结构化 Action
 
+**状态：** ✅ 完成 — implementation commit `d7a3b58`（integration commit `feba572`）
+
 **目标：** 定义首版工具 schema，并把不可信 ActionProposal 确定性规范化为 NormalizedAction。
 
 **依赖与并行：** 依赖 T01；可与 T02、T03、T12、T13、T14 并行。
