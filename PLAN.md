@@ -190,14 +190,15 @@ class IdGenerator(Protocol):
 
 **预期实现要点：**
 
-- 实现 `ArtifactRef` 和 `RunArtifactStore.put/read/verify/path_for`。
+- 实现 `ArtifactRef` 和 descriptor-backed `RunArtifactStore.put/read/verify`；不公开 `path_for()`，业务组件不得绕过 Store 用普通 `Path` 进行证据 I/O。
+- 若提供诊断位置，只能返回明确标记 diagnostic-only 的字符串；T04/T11 等消费者只持有 ArtifactRef，并通过 Store 读取/验证。
 - run 目录权限 `0700`、artifact `0600`；同目录 temp + fsync + `os.replace` 原子写入。
 - Harness 生成 storage key，拒绝 caller path；限制单 artifact、单 run 总大小/数量。
 - digest mismatch、missing、越界引用使用稳定状态/错误码。
 
 **验证步骤：**
 
-1. 写失败测试 `test_put_is_private_and_atomic`、`test_digest_mismatch_detected`、`test_missing_artifact_reported`、`test_storage_key_cannot_escape_run`。
+1. 写失败测试 `test_put_is_private_and_atomic`、`test_digest_mismatch_detected`、`test_missing_artifact_reported`、`test_storage_key_cannot_escape_run`、`test_store_exposes_no_public_path_capability`。
 2. 运行 `pytest tests/unit/test_artifacts.py -q`，预期 FAIL。
 3. 实现后重跑，预期 PASS；用 `pytest ... --basetemp` 确认测试不写 workspace 外固定路径。
 

@@ -30,3 +30,10 @@
 - 职责：T06 Guardrail 注入 `SecretDetector` Protocol，对进入 Docker 的 env value/stdin 做宿主已知 exact literal containment；命中为不可由 Policy/HITL 覆盖的稳定拒绝。T14 提供 detector adapter，T06 不直接导入 T14。
 - 边界：不发明 token regex；MockLLM/无凭据使用 EmptySecretDetector。存在应保护凭据但无法建立 detector 时 fail closed。
 - 过程影响：PLAN 的 T05/T06/T14 验收点已按本次人工裁决澄清，未新增产品能力。
+
+## 实现阶段规格裁决 — T03 公开 Path 安全矛盾
+
+- 发现：T03 原 PLAN/brief 要求公开 `RunArtifactStore.path_for()`；即使 Store 内部使用可信 `dir_fd`，普通 `Path` 返回后，调用者的后续 open/read 仍可能在目录替换后逃逸，形成证据安全边界旁路。
+- 人工裁决：删除公开 `path_for()` 契约。业务组件只能持有 `ArtifactRef`，所有 evidence I/O 必须通过 descriptor-backed `put/read/verify`。
+- 诊断边界：如需展示位置，只允许 diagnostic-only 字符串，不得用于 read/verify；内部私有 helper 也不得替代 anchored I/O。
+- 过程影响：SPEC §4.10/AC-18 与 PLAN T03 已同步收紧；T04/T11 消费者继续仅使用 ArtifactRef + Store，没有扩张 T03 其他范围。
