@@ -111,6 +111,14 @@ class AgentRuntime:
         self._state = RuntimeState.AWAITING_MODEL
         candidates: list[TerminalCandidate] = []
 
+        self._audit.append(
+            event_type="session.created",
+            state=self._state.value,
+            action_id="",
+            source="SYSTEM",
+            payload={"task_id": task.task_id, "run_id": self._config.run_id},
+        )
+
         while self._terminal is None:
             self._round += 1
             self._budget.record_round()
@@ -176,6 +184,18 @@ class AgentRuntime:
         self._terminal = winner.state
         self._terminal_reason = winner.reason
         self._state = RuntimeState.TERMINAL
+
+        self._audit.append(
+            event_type="session.terminal",
+            state=self._state.value,
+            action_id="",
+            source="SYSTEM",
+            payload={
+                "terminal_state": self._terminal.value,
+                "reason": self._terminal_reason,
+            },
+        )
+        self._audit.close()
 
         return RunResult(
             run_id=self._config.run_id,
@@ -260,6 +280,13 @@ class AgentRuntime:
 
         self._state = RuntimeState.EXECUTING
         self._budget.record_tool_call()
+        self._audit.append(
+            event_type="action.execute",
+            state=self._state.value,
+            action_id=normalized.action_id,
+            source=normalized.source.value,
+            payload={"type": normalized.type, "args": dict(normalized.normalized_args)},
+        )
         try:
             result = await self._dispatcher.dispatch(normalized)
         except HarnessSecurityError:

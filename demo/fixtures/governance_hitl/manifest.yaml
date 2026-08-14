@@ -16,10 +16,11 @@ mockllm_script:
       source: MODEL
       type: shell
       raw_args:
-        argv: ["rm", "-rf", "/"]
+        argv: ["git", "push", "--force", "origin", "main"]
         cwd: "."
       workspace_id: ws-1
       round: 2
+  - kind: finish
 approvals:
   - action_id: act-2
     decision: edit_and_execute

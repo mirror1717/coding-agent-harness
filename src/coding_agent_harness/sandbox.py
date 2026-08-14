@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .domain import NormalizedAction, RawExecutionResult
+from .tools import Tool
 
 SANDBOX_IMAGE = "coding-agent-harness-sandbox:latest"
 POLICY_VERSION = 1
@@ -468,7 +469,7 @@ class WriteFileTool:
 
 def create_default_tools(
     workspace_path: Path, workspace_id: str, config: SandboxConfig | None = None
-) -> dict[str, object]:
+) -> dict[str, Tool]:
     """Create the default set of tools backed by Docker sandbox."""
     sandbox = CapturedDockerSandbox(workspace_path, workspace_id, config)
     return {
