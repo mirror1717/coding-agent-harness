@@ -37,3 +37,14 @@
 - 人工裁决：删除公开 `path_for()` 契约。业务组件只能持有 `ArtifactRef`，所有 evidence I/O 必须通过 descriptor-backed `put/read/verify`。
 - 诊断边界：如需展示位置，只允许 diagnostic-only 字符串，不得用于 read/verify；内部私有 helper 也不得替代 anchored I/O。
 - 过程影响：SPEC §4.10/AC-18 与 PLAN T03 已同步收紧；T04/T11 消费者继续仅使用 ArtifactRef + Store，没有扩张 T03 其他范围。
+
+## T13 — BudgetController、NoProgress 与终止优先级
+
+- 状态：完成
+- Implementation commit：`f0cb4fe`（集成为 `bc953fe`）
+- Implementer：fresh subagent `/root/w2_t13`
+- TDD：多轮 RED→GREEN 覆盖独立预算、非有限/超大数与时钟回拨、累计溢出不污染状态、严格输入类型、NoProgress 独立信号、run-scoped snapshot、verified SUCCESS 与完整确定性终态优先表。
+- Verification：最终 focused 127 passed、全部 unit 160 passed；Ruff、mypy、cached diff check 通过。
+- Spec compliance review：最终 SPEC COMPLIANT；确认 `SECURITY_STOP` 最高且全部终态排列裁决稳定。
+- Code quality review：初审发现负快照、security 覆盖假阳性及候选事实矛盾；TDD 修复后 CODE QUALITY APPROVED。
+- 范围：仅 T13 声明的四个实现/测试文件；未加入 Runtime 协调逻辑。

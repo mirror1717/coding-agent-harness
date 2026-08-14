@@ -430,6 +430,8 @@ class IdGenerator(Protocol):
 
 ## T13：BudgetController、NoProgress 与终止优先级
 
+**状态：** ✅ 完成 — implementation commit `f0cb4fe`（integration commit `bc953fe`）
+
 **目标：** 独立核算预算，并集中裁决唯一终止状态。
 
 **依赖与并行：** 依赖 T01；W2 可与 T02、T03、T05、T12、T14 并行。
