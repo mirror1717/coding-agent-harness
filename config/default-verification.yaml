@@ -1,0 +1,17 @@
+profile_id: default
+name: Default verification profile
+finish_condition: all_required_checks_pass
+checks:
+  - check_id: pytest
+    required: true
+    timeout_seconds: 300
+    resource_limits:
+      cpu_quota: "1.0"
+      memory_limit_mb: 512
+      pid_limit: 256
+    action_template:
+      type: pytest
+      raw_args:
+        argv:
+          - pytest
+          - "-q"
