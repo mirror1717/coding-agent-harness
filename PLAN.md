@@ -241,6 +241,7 @@ class IdGenerator(Protocol):
 
 - 注册 `list_files/read_file/write_file/shell/pytest`，未知工具和额外字段拒绝。
 - ShellArgs 只含非空 `argv`、workspace-relative `cwd`、allowlisted `env`、有上限的 `stdin/timeout_seconds`。
+- T05 只校验 env key allowlist 与 stdin/timeout 大小，不判断载荷是否包含宿主 secret；secret containment 是 T06 不可覆盖的 hard boundary。
 - 拒绝 `command` string、`bash -c`、`sh -c`、PowerShell string 等解释器求值模式。
 - canonical path/cwd 必须在 workspace 内，并阻止符号链接逃逸。
 - 定义 Tool Protocol 与 ToolDispatcher，但本任务不实现 Docker。
@@ -267,13 +268,16 @@ class IdGenerator(Protocol):
 
 - `Guardrail.check(NormalizedAction)` 是纯函数式检查，返回 PASS 或稳定 DENY reason。
 - hard maxima 由 package-owned 配置加载，Policy/HITL 无覆盖入口。
+- 注入 `SecretDetector` Protocol（`contains_secret(value: str | bytes) -> bool`），对所有可能进入 Docker 的 env value、stdin 等载荷做 exact-secret containment 检查；命中返回稳定 `GUARDRAIL_DENY` reason，YAML/HITL 不可覆盖。
+- T06 不导入 T14。无真实凭据时注入 `EmptySecretDetector`；系统存在应保护凭据但无法建立 detector 时 fail closed。首版不得自行增加 token regex。
 - `assert_enforcement(sandbox_metadata)` 发现实际网络/挂载/特权/资源约束失效时抛 `BoundaryIntegrityError`。
 
 **验证步骤：**
 
-1. 写失败表驱动测试，覆盖 path escape、Docker socket、network、privileged、额外挂载、超限资源、shell interpreter eval。
-2. 写 `test_policy_like_override_is_not_accepted` 与 `test_observed_boundary_failure_is_security_error`。
-3. 运行 `pytest tests/unit/test_guardrail.py -q`，预期 FAIL；实现后预期 PASS。
+1. 写失败表驱动测试，覆盖 path escape、Docker socket、network、privileged、额外挂载、超限资源、shell interpreter eval，以及 FakeSecretDetector 命中的 env/stdin。
+2. 写 `test_empty_secret_detector_allows_nonempty_payload` 与 `test_missing_required_detector_fails_closed`。
+3. 写 `test_policy_like_override_is_not_accepted` 与 `test_observed_boundary_failure_is_security_error`。
+4. 运行 `pytest tests/unit/test_guardrail.py -q`，预期 FAIL；实现后预期 PASS。
 
 ## T07：声明式 YAML PolicyEngine
 
@@ -466,11 +470,12 @@ class IdGenerator(Protocol):
 - status 仅返回 configured/endpoint/model/updated metadata，不返回 secret。
 - backend 不可用时 fail closed；不创建 `.env`、JSON 或其他明文 fallback。
 - 提供统一 exact-secret redaction 输入给 LLM/Feedback/UI 层。
+- 提供基于宿主已知 exact secret literals 的 `SecretDetector` adapter，供 T06 通过 Protocol 注入；不让 Guardrail 直接依赖 CredentialStore，也不引入 token regex。
 
 **验证步骤：**
 
 1. 写失败 fake-keyring 测试覆盖 set/status/update/get_for_client/clear/backend locked。
-2. 写 `test_no_plaintext_fallback_created` 和 `test_status_and_exception_do_not_contain_key`。
+2. 写 `test_no_plaintext_fallback_created`、`test_status_and_exception_do_not_contain_key` 和 exact-literal detector adapter 测试。
 3. 运行 `pytest tests/unit/test_credentials.py -q`，初次 FAIL；实现后 PASS。
 
 ## T15：MockLLM 与 OpenAI-compatible Adapter
