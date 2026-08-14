@@ -89,6 +89,18 @@ def credentials_set(
     typer.echo(f"Key set for {provider} (minimal CLI - not persisted)")
 
 
+@credentials_app.command("update")
+def credentials_update(
+    provider: Annotated[str, typer.Argument()] = "openai",
+) -> None:
+    """Interactively update API key (hidden input)."""
+    key = typer.prompt("New API Key", hide_input=True)
+    if not key:
+        typer.echo("Error: empty key", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"Key updated for {provider} (minimal CLI - not persisted)")
+
+
 @credentials_app.command("clear")
 def credentials_clear(
     provider: Annotated[str, typer.Argument()] = "openai",
